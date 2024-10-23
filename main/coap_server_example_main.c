@@ -63,6 +63,12 @@ const static char *TAG = "CoAP_server";
 
 static char espressif_data[100];
 static int espressif_data_len = 0;
+typedef struct {
+    char value_tie_untie[100];
+    int len_tie_untie;
+} Tennis;
+
+static Tennis BB202X;
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
 /* CA cert, taken from coap_ca.pem
@@ -155,6 +161,55 @@ hnd_espressif_delete(coap_resource_t *resource,
     coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
 }
 
+/* Handler functions to tie_untie resource */
+static void
+hnd_tie_untie_put(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    size_t size;
+    size_t offset;
+    size_t total;
+    const unsigned char *data;
+
+    coap_resource_notify_observers(resource, NULL);
+
+    /* coap_get_data_large() sets size to 0 on error */
+    (void)coap_get_data_large(request, &size, &data, &offset, &total);
+
+    if (size > 0) {
+        if ((strncmp((const char *)data, "tie", size) == 0) || (strncmp((const char *)data, "untie", size) == 0)) {
+            BB202X.len_tie_untie = size > sizeof (BB202X.value_tie_untie) ? sizeof (BB202X.value_tie_untie) : size;
+            memcpy (BB202X.value_tie_untie, data, BB202X.len_tie_untie);
+
+            coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
+        }
+        else {
+            coap_pdu_set_code(response, COAP_RESPONSE_CODE_BAD_OPTION);
+        }
+    }
+    else {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_BAD_OPTION);
+    }
+}
+
+static void
+hnd_tie_untie_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)BB202X.len_tie_untie,
+                                 (const u_char *)BB202X.value_tie_untie,
+                                 NULL, NULL);
+}
+
 #ifdef CONFIG_COAP_OSCORE_SUPPORT
 static void
 hnd_oscore_get(coap_resource_t *resource,
@@ -210,6 +265,7 @@ static void coap_example_server(void *p)
 {
     coap_context_t *ctx = NULL;
     coap_resource_t *resource = NULL;
+    coap_resource_t *tie_untie = NULL;
     int have_ep = 0;
     uint16_t u_s_port = atoi(CONFIG_EXAMPLE_COAP_LISTEN_PORT);
 #ifdef CONFIG_EXAMPLE_COAPS_LISTEN_PORT
@@ -240,6 +296,10 @@ static void coap_example_server(void *p)
 
     snprintf(espressif_data, sizeof(espressif_data), INITIAL_DATA);
     espressif_data_len = strlen(espressif_data);
+
+    snprintf(BB202X.value_tie_untie, sizeof(BB202X.value_tie_untie), "untie");
+    BB202X.len_tie_untie = strlen(BB202X.value_tie_untie);
+
     coap_set_log_handler(coap_log_handler);
     coap_set_log_level(EXAMPLE_COAP_LOG_DEFAULT_LEVEL);
 
@@ -379,6 +439,18 @@ static void coap_example_server(void *p)
         /* We possibly want to Observe the GETs */
         coap_resource_set_get_observable(resource, 1);
         coap_add_resource(ctx, resource);
+        
+        /* Add resource tie_untie */
+        tie_untie = coap_resource_init(coap_make_str_const("shoe/shoelace"), 0);
+        if (!tie_untie) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        coap_register_handler(tie_untie, COAP_REQUEST_PUT, hnd_tie_untie_put);
+        coap_register_handler(tie_untie, COAP_REQUEST_GET, hnd_tie_untie_get);
+        /* We possibly want to Observe the GETs */
+        coap_resource_set_get_observable(tie_untie, 1);
+        coap_add_resource(ctx, tie_untie);
 #ifdef CONFIG_COAP_OSCORE_SUPPORT
         resource = coap_resource_init(coap_make_str_const("oscore"), COAP_RESOURCE_FLAGS_OSCORE_ONLY);
         if (!resource) {
