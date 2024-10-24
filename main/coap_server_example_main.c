@@ -68,6 +68,8 @@ typedef struct {
     int len_shoe_shoelace;
 
     /* shoe_ledcolor */
+    char value_shoe_ledcolor[100];
+    int len_shoe_ledcolor;
 
     /* shoe_steps */
     int value_shoe_steps;
@@ -220,6 +222,63 @@ hnd_shoe_shoelace_get(coap_resource_t *resource,
                                  (size_t)BB202X.len_shoe_shoelace,
                                  (const u_char *)BB202X.value_shoe_shoelace,
                                  NULL, NULL);
+}
+
+/* Handler functions to shoe_ledcolor resource */
+static void
+hnd_shoe_ledcolor_put(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    size_t size;
+    size_t offset;
+    size_t total;
+    const unsigned char *data;
+
+    coap_resource_notify_observers(resource, NULL);
+
+    /* coap_get_data_large() sets size to 0 on error */
+    (void)coap_get_data_large(request, &size, &data, &offset, &total);
+
+    if (size == 6) {
+        BB202X.len_shoe_ledcolor = size;
+        strncpy(BB202X.value_shoe_ledcolor, (const char *)data, BB202X.len_shoe_ledcolor);
+
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
+    }
+    else {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_BAD_OPTION);
+    }
+}
+
+static void
+hnd_shoe_ledcolor_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)BB202X.len_shoe_ledcolor,
+                                 (const u_char *)BB202X.value_shoe_ledcolor,
+                                 NULL, NULL);
+}
+
+static void
+hnd_shoe_ledcolor_delete(coap_resource_t *resource,
+                     coap_session_t *session,
+                     const coap_pdu_t *request,
+                     const coap_string_t *query,
+                     coap_pdu_t *response)
+{
+    BB202X.len_shoe_ledcolor = sprintf(BB202X.value_shoe_ledcolor, "000000");
+
+    coap_resource_notify_observers(resource, NULL);
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
 }
 
 /* Handler functions to shoe_steps resource */
@@ -435,6 +494,9 @@ static void coap_example_server(void *p)
     /* shoe_shoelace */
     BB202X.len_shoe_shoelace = sprintf(BB202X.value_shoe_shoelace, "untie");
 
+    /* shoe_ledcolor */
+    BB202X.len_shoe_ledcolor = sprintf(BB202X.value_shoe_ledcolor, "000000");
+
     /* shoe_steps */
     BB202X.value_shoe_steps = 0;
 
@@ -596,7 +658,7 @@ static void coap_example_server(void *p)
         coap_add_resource(ctx, shoe_shoelace);
 
         /* Add resource shoe_ledcolor */
-        /*shoe_ledcolor = coap_resource_init(coap_make_str_const("shoe/ledcolor"), 0);
+        shoe_ledcolor = coap_resource_init(coap_make_str_const("shoe/ledcolor"), 0);
         if (!shoe_ledcolor) {
             ESP_LOGE(TAG, "coap_resource_init() failed");
             goto clean_up;
@@ -605,7 +667,7 @@ static void coap_example_server(void *p)
         coap_register_handler(shoe_ledcolor, COAP_REQUEST_GET, hnd_shoe_ledcolor_get);
         coap_register_handler(shoe_ledcolor, COAP_REQUEST_DELETE, hnd_shoe_ledcolor_delete);
         coap_resource_set_get_observable(shoe_ledcolor, 1);
-        coap_add_resource(ctx, shoe_ledcolor);*/
+        coap_add_resource(ctx, shoe_ledcolor);
 
         /* Add resource shoe_steps */
         shoe_steps = coap_resource_init(coap_make_str_const("shoe/steps"), 0);
