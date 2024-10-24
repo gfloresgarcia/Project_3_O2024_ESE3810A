@@ -63,8 +63,19 @@ const static char *TAG = "CoAP_server";
 static char espressif_data[100];
 static int espressif_data_len = 0;
 typedef struct {
-    char value_tie_untie[100];
-    int len_tie_untie;
+    /* shoe_shoelance */
+    char value_shoe_shoelace[100];
+    int len_shoe_shoelace;
+
+    /* shoe_ledcolor */
+
+    /* shoe_steps */
+    int value_shoe_steps;
+
+    /* shoe_size */
+    int value_shoe_size;
+
+    /* shoe_name */
 } Tennis;
 
 static Tennis BB202X;
@@ -160,9 +171,9 @@ hnd_espressif_delete(coap_resource_t *resource,
     coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
 }
 
-/* Handler functions to tie_untie resource */
+/* Handler functions to shoe_shoelace resource */
 static void
-hnd_tie_untie_put(coap_resource_t *resource,
+hnd_shoe_shoelace_put(coap_resource_t *resource,
                   coap_session_t *session,
                   const coap_pdu_t *request,
                   const coap_string_t *query,
@@ -180,8 +191,8 @@ hnd_tie_untie_put(coap_resource_t *resource,
 
     if (size > 0) {
         if ((strncmp((const char *)data, "tie", size) == 0) || (strncmp((const char *)data, "untie", size) == 0)) {
-            BB202X.len_tie_untie = size > sizeof (BB202X.value_tie_untie) ? sizeof (BB202X.value_tie_untie) : size;
-            memcpy (BB202X.value_tie_untie, data, BB202X.len_tie_untie);
+            BB202X.len_shoe_shoelace = size > sizeof (BB202X.value_shoe_shoelace) ? sizeof (BB202X.value_shoe_shoelace) : size;
+            memcpy (BB202X.value_shoe_shoelace, data, BB202X.len_shoe_shoelace);
 
             coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
         }
@@ -195,7 +206,7 @@ hnd_tie_untie_put(coap_resource_t *resource,
 }
 
 static void
-hnd_tie_untie_get(coap_resource_t *resource,
+hnd_shoe_shoelace_get(coap_resource_t *resource,
                   coap_session_t *session,
                   const coap_pdu_t *request,
                   const coap_string_t *query,
@@ -204,11 +215,65 @@ hnd_tie_untie_get(coap_resource_t *resource,
     coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
     coap_add_data_large_response(resource, session, request, response,
                                  query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
-                                 (size_t)BB202X.len_tie_untie,
-                                 (const u_char *)BB202X.value_tie_untie,
+                                 (size_t)BB202X.len_shoe_shoelace,
+                                 (const u_char *)BB202X.value_shoe_shoelace,
                                  NULL, NULL);
 }
 
+/* Handler functions to shoe_steps resource */
+static void
+hnd_shoe_steps_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    char aux[100] = {0};
+    int len = 0;
+    len = sprintf(aux, "%d", BB202X.value_shoe_steps);
+
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)len,
+                                 (const u_char *)aux,
+                                 NULL, NULL);
+
+    BB202X.value_shoe_steps++;
+}
+
+static void
+hnd_shoe_steps_delete(coap_resource_t *resource,
+                     coap_session_t *session,
+                     const coap_pdu_t *request,
+                     const coap_string_t *query,
+                     coap_pdu_t *response)
+{
+    BB202X.value_shoe_steps = 0;
+
+    coap_resource_notify_observers(resource, NULL);
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
+}
+
+/* Handler functions to shoe_size resource */
+static void
+hnd_shoe_size_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    char aux[100] = {0};
+    int len = 0;
+    len = sprintf(aux, "%d", BB202X.value_shoe_size);
+
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)len,
+                                 (const u_char *)aux,
+                                 NULL, NULL);
+}
 #ifdef CONFIG_COAP_OSCORE_SUPPORT
 static void
 hnd_oscore_get(coap_resource_t *resource,
@@ -264,7 +329,12 @@ static void coap_example_server(void *p)
 {
     coap_context_t *ctx = NULL;
     coap_resource_t *resource = NULL;
-    coap_resource_t *tie_untie = NULL;
+    coap_resource_t *shoe_shoelace = NULL;
+    coap_resource_t *shoe_ledcolor = NULL;
+    coap_resource_t *shoe_steps = NULL;
+    coap_resource_t *shoe_size = NULL;
+    coap_resource_t *shoe_name = NULL;
+
     int have_ep = 0;
     uint16_t u_s_port = atoi(CONFIG_EXAMPLE_COAP_LISTEN_PORT);
 #ifdef CONFIG_EXAMPLE_COAPS_LISTEN_PORT
@@ -296,8 +366,15 @@ static void coap_example_server(void *p)
     snprintf(espressif_data, sizeof(espressif_data), INITIAL_DATA);
     espressif_data_len = strlen(espressif_data);
 
-    snprintf(BB202X.value_tie_untie, sizeof(BB202X.value_tie_untie), "untie");
-    BB202X.len_tie_untie = strlen(BB202X.value_tie_untie);
+    /* shoe_shoelace */
+    snprintf(BB202X.value_shoe_shoelace, sizeof(BB202X.value_shoe_shoelace), "untie");
+    BB202X.len_shoe_shoelace = strlen(BB202X.value_shoe_shoelace);
+
+    /* shoe_steps */
+    BB202X.value_shoe_steps = 0;
+
+    /* shoe_size */
+    BB202X.value_shoe_size = 27;
 
     coap_set_log_handler(coap_log_handler);
     coap_set_log_level(EXAMPLE_COAP_LOG_DEFAULT_LEVEL);
@@ -439,17 +516,62 @@ static void coap_example_server(void *p)
         coap_resource_set_get_observable(resource, 1);
         coap_add_resource(ctx, resource);
         
-        /* Add resource tie_untie */
-        tie_untie = coap_resource_init(coap_make_str_const("shoe/shoelace"), 0);
-        if (!tie_untie) {
+        /* Add resource shoe_shoelace */
+        shoe_shoelace = coap_resource_init(coap_make_str_const("shoe/shoelace"), 0);
+        if (!shoe_shoelace) {
             ESP_LOGE(TAG, "coap_resource_init() failed");
             goto clean_up;
         }
-        coap_register_handler(tie_untie, COAP_REQUEST_PUT, hnd_tie_untie_put);
-        coap_register_handler(tie_untie, COAP_REQUEST_GET, hnd_tie_untie_get);
-        /* We possibly want to Observe the GETs */
-        coap_resource_set_get_observable(tie_untie, 1);
-        coap_add_resource(ctx, tie_untie);
+        coap_register_handler(shoe_shoelace, COAP_REQUEST_PUT, hnd_shoe_shoelace_put);
+        coap_register_handler(shoe_shoelace, COAP_REQUEST_GET, hnd_shoe_shoelace_get);
+        coap_resource_set_get_observable(shoe_shoelace, 1);
+        coap_add_resource(ctx, shoe_shoelace);
+
+        /* Add resource shoe_ledcolor */
+        /*shoe_ledcolor = coap_resource_init(coap_make_str_const("shoe/ledcolor"), 0);
+        if (!shoe_ledcolor) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        coap_register_handler(shoe_ledcolor, COAP_REQUEST_PUT, hnd_shoe_ledcolor_put);
+        coap_register_handler(shoe_ledcolor, COAP_REQUEST_GET, hnd_shoe_ledcolor_get);
+        coap_register_handler(shoe_ledcolor, COAP_REQUEST_DELETE, hnd_shoe_ledcolor_delete);
+        coap_resource_set_get_observable(shoe_ledcolor, 1);
+        coap_add_resource(ctx, shoe_ledcolor);*/
+
+        /* Add resource shoe_steps */
+        shoe_steps = coap_resource_init(coap_make_str_const("shoe/steps"), 0);
+        if (!shoe_steps) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        coap_register_handler(shoe_steps, COAP_REQUEST_GET, hnd_shoe_steps_get);
+        coap_register_handler(shoe_steps, COAP_REQUEST_DELETE, hnd_shoe_steps_delete);
+        coap_resource_set_get_observable(shoe_steps, 1);
+        coap_add_resource(ctx, shoe_steps);
+
+        /* Add resource shoe_size */
+        shoe_size = coap_resource_init(coap_make_str_const("shoe/size"), 0);
+        if (!shoe_size) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        coap_register_handler(shoe_size, COAP_REQUEST_GET, hnd_shoe_size_get);
+        coap_resource_set_get_observable(shoe_size, 1);
+        coap_add_resource(ctx, shoe_size);
+
+        /* Add resource shoe_name */
+        /*shoe_name = coap_resource_init(coap_make_str_const("shoe/name"), 0);
+        if (!shoe_name) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        coap_register_handler(shoe_name, COAP_REQUEST_PUT, hnd_shoe_name_put);
+        coap_register_handler(shoe_name, COAP_REQUEST_GET, hnd_shoe_name_get);
+        coap_register_handler(shoe_name, COAP_REQUEST_DELETE, hnd_shoe_name_delete);
+        coap_resource_set_get_observable(shoe_name, 1);
+        coap_add_resource(ctx, shoe_name);*/
+
 #ifdef CONFIG_COAP_OSCORE_SUPPORT
         resource = coap_resource_init(coap_make_str_const("oscore"), COAP_RESOURCE_FLAGS_OSCORE_ONLY);
         if (!resource) {
