@@ -16,20 +16,16 @@
 
 #include <string.h>
 #include <sys/socket.h>
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
-
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
-
 #include "nvs_flash.h"
-
 #include "protocol_examples_common.h"
-
 #include "coap3/coap.h"
+#include "mdns.h"
 
 #ifndef CONFIG_COAP_SERVER_SUPPORT
 #error COAP_SERVER_SUPPORT needs to be enabled
@@ -60,6 +56,9 @@
 #define EXAMPLE_COAP_LOG_DEFAULT_LEVEL CONFIG_COAP_LOG_DEFAULT_LEVEL
 
 const static char *TAG = "CoAP_server";
+
+#define MDNS_HOSTNAME "Mikes adapt BB 202X"
+#define MDNS_DEFAULT_INSTANCE "Mikes adapt BB 202X"
 
 static char espressif_data[100];
 static int espressif_data_len = 0;
@@ -511,6 +510,12 @@ void app_main(void)
      * examples/protocols/README.md for more information about this function.
      */
     ESP_ERROR_CHECK(example_connect());
+
+    /* Initialize mdns */
+    mdns_init();
+    mdns_hostname_set(MDNS_HOSTNAME);
+    mdns_instance_name_set(MDNS_DEFAULT_INSTANCE);
+    mdns_service_add("shoe_control", "_coap", "_udp", 5353, NULL, 0);
 
     xTaskCreate(coap_example_server, "coap", 8 * 1024, NULL, 5, NULL);
 }
