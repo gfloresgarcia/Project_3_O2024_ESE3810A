@@ -76,6 +76,8 @@ typedef struct {
     int value_shoe_size;
 
     /* shoe_name */
+    char value_shoe_name[100];
+    int len_shoe_name;
 } Tennis;
 
 static Tennis BB202X;
@@ -274,6 +276,70 @@ hnd_shoe_size_get(coap_resource_t *resource,
                                  (const u_char *)aux,
                                  NULL, NULL);
 }
+
+/* Handler functions to shoe_name resource */
+static void
+hnd_shoe_name_put(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    size_t size;
+    size_t offset;
+    size_t total;
+    const unsigned char *data;
+
+    coap_resource_notify_observers(resource, NULL);
+
+    /* coap_get_data_large() sets size to 0 on error */
+    (void)coap_get_data_large(request, &size, &data, &offset, &total);
+
+    if (size == 0) {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_BAD_OPTION);
+    }
+    else if (size > 20) {
+        BB202X.len_shoe_name = 20;
+        strncpy(BB202X.value_shoe_name, (const char *)data, BB202X.len_shoe_name);
+
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
+    }
+    else {
+        BB202X.len_shoe_name = size;
+        strncpy(BB202X.value_shoe_name, (const char *)data, BB202X.len_shoe_name);
+
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
+    }
+}
+
+static void
+hnd_shoe_name_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)BB202X.len_shoe_name,
+                                 (const u_char *)BB202X.value_shoe_name,
+                                 NULL, NULL);
+}
+
+static void
+hnd_shoe_name_delete(coap_resource_t *resource,
+                     coap_session_t *session,
+                     const coap_pdu_t *request,
+                     const coap_string_t *query,
+                     coap_pdu_t *response)
+{
+    BB202X.len_shoe_name = sprintf(BB202X.value_shoe_name, "No name");
+
+    coap_resource_notify_observers(resource, NULL);
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
+}
+
 #ifdef CONFIG_COAP_OSCORE_SUPPORT
 static void
 hnd_oscore_get(coap_resource_t *resource,
@@ -367,14 +433,16 @@ static void coap_example_server(void *p)
     espressif_data_len = strlen(espressif_data);
 
     /* shoe_shoelace */
-    snprintf(BB202X.value_shoe_shoelace, sizeof(BB202X.value_shoe_shoelace), "untie");
-    BB202X.len_shoe_shoelace = strlen(BB202X.value_shoe_shoelace);
+    BB202X.len_shoe_shoelace = sprintf(BB202X.value_shoe_shoelace, "untie");
 
     /* shoe_steps */
     BB202X.value_shoe_steps = 0;
 
     /* shoe_size */
     BB202X.value_shoe_size = 27;
+
+    /* shoe_name */
+    BB202X.len_shoe_name = sprintf(BB202X.value_shoe_name, "No name");
 
     coap_set_log_handler(coap_log_handler);
     coap_set_log_level(EXAMPLE_COAP_LOG_DEFAULT_LEVEL);
@@ -561,7 +629,7 @@ static void coap_example_server(void *p)
         coap_add_resource(ctx, shoe_size);
 
         /* Add resource shoe_name */
-        /*shoe_name = coap_resource_init(coap_make_str_const("shoe/name"), 0);
+        shoe_name = coap_resource_init(coap_make_str_const("shoe/name"), 0);
         if (!shoe_name) {
             ESP_LOGE(TAG, "coap_resource_init() failed");
             goto clean_up;
@@ -570,7 +638,7 @@ static void coap_example_server(void *p)
         coap_register_handler(shoe_name, COAP_REQUEST_GET, hnd_shoe_name_get);
         coap_register_handler(shoe_name, COAP_REQUEST_DELETE, hnd_shoe_name_delete);
         coap_resource_set_get_observable(shoe_name, 1);
-        coap_add_resource(ctx, shoe_name);*/
+        coap_add_resource(ctx, shoe_name);
 
 #ifdef CONFIG_COAP_OSCORE_SUPPORT
         resource = coap_resource_init(coap_make_str_const("oscore"), COAP_RESOURCE_FLAGS_OSCORE_ONLY);
